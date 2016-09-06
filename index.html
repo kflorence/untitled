@@ -1,0 +1,137 @@
+<html>
+<head>
+  <title>Untitled Game</title>
+  <script src="node_modules/phaser/build/phaser.js"></script>
+</head>
+<body>
+  <script>
+    var arena;
+    var arenaBoundary;
+    var ball;
+    var graphics;
+    var keys;
+    var player;
+    var speed = 300;
+    var triangle;
+
+    var game = new Phaser.Game(800, 600, Phaser.AUTO, "game", {
+      preload: preload,
+      create: create,
+      update: update
+    }, true);
+
+    function preload() {
+      game.load.tilemap(
+        "arena",
+        "assets/tilemap/default.json",
+        null,
+        Phaser.Tilemap.TILED_JSON
+      );
+      game.load.image("default", "assets/tilemap/tileset/default.png");
+    }
+
+    function create() {
+      // enable "arcade style" physics engine
+      game.physics.startSystem(Phaser.Physics.ARCADE);
+
+      // enable key tracking
+      keys = game.input.keyboard.createCursorKeys();
+
+      arena = game.add.tilemap("arena");
+      arena.addTilesetImage("default");
+
+      arenaBoundary = arena.createLayer("boundary");
+      arenaBoundary.resizeWorld();
+
+      arena.setCollision(2, true, arenaBoundary);
+
+      graphics = game.add.graphics();
+
+      // create the player "triangle"
+      triangle = new Phaser.Polygon([
+        new Phaser.Point(0, 0),
+        new Phaser.Point(0, arena.tileHeight),
+        new Phaser.Point(arena.tileWidth, arena.tileHeight / 2)
+      ]);
+
+      graphics.beginFill(0x999999);
+      graphics.drawPolygon(triangle.points);
+      graphics.endFill();
+
+      var arenaWidth = arena.width * arena.tileWidth;
+      var arenaHeight = arena.height * arena.tileHeight;
+
+      player = game.add.sprite(
+        arenaWidth / 2,
+        arenaHeight - (arenaHeight / 4),
+        graphics.generateTexture()
+      );
+
+      graphics.clear();
+
+      // center the sprite and point it north
+      player.anchor.set(0.5);
+      player.angle = -90;
+
+      game.physics.arcade.enable(player);
+
+      player.body.mass = 1;
+      player.body.bounce.set(0.4, 0.4);
+      player.body.drag.set(200);
+      player.body.maxVelocity.set(300);
+
+      game.camera.follow(player);
+
+      // create the "ball"
+      graphics.beginFill(0x666666);
+      graphics.lineStyle(0);
+      graphics.drawCircle(arena.tileWidth / 2, arena.tileWidth / 2, arena.tileWidth);
+      graphics.endFill();
+
+      ball = game.add.sprite(
+        arenaWidth / 2,
+        arenaHeight / 2,
+        graphics.generateTexture()
+      );
+
+      ball.anchor.set(0.5);
+
+      game.physics.arcade.enable(ball);
+
+      //ball.body.setCircle(ball.width);
+      ball.body.mass = 0.5;
+      ball.body.bounce.set(0.6, 0.6);
+      ball.body.drag.set(40);
+
+      graphics.clear();
+    }
+
+    function update() {
+      // set collisions
+      game.physics.arcade.collide(ball, arenaBoundary);
+      game.physics.arcade.collide(ball, player);
+      game.physics.arcade.collide(player, arenaBoundary);
+
+      // update player movement
+      if (keys.up.isDown) {
+        game.physics.arcade.accelerationFromRotation(
+          player.rotation,
+          speed,
+          player.body.acceleration
+        );
+      } else {
+        player.body.acceleration.set(0);
+      }
+
+      if (keys.left.isDown) {
+        player.body.angularVelocity = -speed;
+      } else if (keys.right.isDown) {
+        player.body.angularVelocity = speed;
+      } else {
+        player.body.angularVelocity = 0;
+      }
+    }
+  </script>
+  <main id="game"></main>
+</body>
+</html>
